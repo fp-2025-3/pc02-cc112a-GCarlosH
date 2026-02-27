@@ -1,0 +1,19 @@
+---- REPORTE DENERAL DE VENTAS ----
+
+Total registros : 150
+MONTO TOTAL VENDIDO : 
+$ 3770617
+
+----------------------------------
+VENDEDOR CON MAYOR RECAUDACION : 
+ID Vendedor : 3
+Total vendido : $96530
+
+----------------------------------
+PRODUCTO MAS VENDIDO : 
+
+ID Producto : 19
+Total unidades : 200
+
+---------------------------------
+VENTAS SOSPECHOSAS (cantidad > 100) :
