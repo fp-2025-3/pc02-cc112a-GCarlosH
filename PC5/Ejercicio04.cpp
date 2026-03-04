@@ -1,78 +1,114 @@
 #include <iostream>
-#include <cstring>
 #include <fstream>
+#include <iomanip>   // para controlar decimales
 using namespace std ;
+
 //CREAMOS LA ESTRUCTURA SOLICITADA
 struct Venta{
     int idVenta ;
     int idVendedor ;
     int idProducto ;
     int cantidad ;
-    double precioUnitario ;
+    double precioUnitario ;   // correcion a float
 };
 
 int main(){
+
     // Inicializamos el objeto y lo colocamos en la posicion final
-    ifstream archivoBi("ventas.dat" , ios::ate) ;
-    Venta venta ;
+    ifstream archivoBi("ventas.dat" , ios::binary | ios::ate) ;
+    
     if(!archivoBi){ // como buena practica 
-        cerr << " Error al abrir el archivo " ;
+        cerr << " Error al abrir el archivo " << endl ;
+        return 1 ;
     }
+
     //Para saber bytes totales 
     streampos registrosTotales = archivoBi.tellg() ;
-    int tamanio = sizeof(Venta) ; //tamaño de cada estructura
+    int tamanio = sizeof(Venta) ;
     int nRegistos = registrosTotales / tamanio ;
 
     //ahora volvemos al inicio 
-    archivoBi.clear() ;
     archivoBi.seekg(0 , ios::beg) ;
 
-    long int montoTotal = 0 ;
+    float montoTotal = 0 ; //ahora son float
+    float mayorRecaudacion = 0 ;
+    int IDmejorVendedor = 0 ;
 
-    long int mayorRecaudacion = 0 ; //valor arbitario
-    int IDmejorVendedor ;
+    int masVendido = 0 ;
+    int IDproductoMasVendido = 0 ;
 
-    int masVendido ;
-    int IDproductoMasVendido ;
+    Venta venta ;
 
+    //PRIMERA LECTURA: SOLO CALCULOS
     for(int i = 0 ; i < nRegistos ; i ++){
-        // Colocamos el puntero de lectura donde corresponda 
-        archivoBi.seekg((i) * sizeof(Venta), ios::beg);
+
         archivoBi.read(reinterpret_cast<char *>(&venta) , sizeof(Venta)) ;
 
-        //PARA CALCULAR EL MONTO TOTAL
-        long int monto = venta.cantidad * venta.precioUnitario ;
+        float monto = venta.cantidad * venta.precioUnitario ;
         montoTotal += monto ;
 
-        // PARA DETERINAR EL VENDEDOR CON MAYOR RECAUDACION 
-        if(mayorRecaudacion < monto ){
+        // PARA DETERMINAR EL VENDEDOR CON MAYOR RECAUDACION 
+        if(monto > mayorRecaudacion){
             mayorRecaudacion = monto ;
             IDmejorVendedor = venta.idVendedor ;
         }
 
         //PARA DETERMINAR EL PRODUCTO MAS VENDIDO 
-        if(masVendido < venta.cantidad){
+        if(venta.cantidad > masVendido){
             masVendido = venta.cantidad ;
             IDproductoMasVendido = venta.idProducto ;
         }
     }
+
     archivoBi.close() ;
 
+    //CREAMOS EL ARCHIVO REPORTE
     ofstream archivoNuevo("Reporte.txt") ;
 
-    archivoNuevo << "---- REPORTE DENERAL DE VENTAS ----" << endl 
+    // Para que el dinero salga con 2 decimales
+    archivoNuevo << fixed << setprecision(2);
+
+    archivoNuevo << "---- REPORTE GENERAL DE VENTAS ----" << endl 
                  << "\nTotal registros : " << nRegistos << endl 
-                 << "MONTO TOTAL VENDIDO : \n$ " << montoTotal << endl  
-                 <<"\n----------------------------------" << endl 
-                 << "VENDEDOR CON MAYOR RECAUDACION : " << endl 
+                 << "\nMONTO TOTAL VENDIDO : $" << montoTotal << endl  
+                 << "\n----------------------------------" << endl 
+                 << "\nVENDEDOR CON MAYOR RECAUDACION :" << endl 
                  << "ID Vendedor : " << IDmejorVendedor 
                  << "\nTotal vendido : $" << mayorRecaudacion << endl
-                 <<"\n----------------------------------" 
-                 <<"\nPRODUCTO MAS VENDIDO : " << endl
+                 << "\n----------------------------------" 
+                 << "\nPRODUCTO MAS VENDIDO :" << endl
                  << "\nID Producto : " << IDproductoMasVendido
-                 << "\nTotal unidades : " << masVendido<<endl
-                 << "\n---------------------------------"
-                 <<"\nVENTAS SOSPECHOSAS (cantidad > 100) :" ;
+                 << "\nTotal unidades : " << masVendido << endl
+                 << "\n---------------------------------" 
+                 << "\nVENTAS SOSPECHOSAS (cantidad > 100):" << endl ;
+
+    //SEGUNDA LECTURA PARA DETECTAR VENTAS SOSPECHOSAS
+    ifstream archivoBi2("ventas.dat" , ios::binary) ;
+
+    bool haySospechosas = false ;
+
+    for(int i = 0 ; i < nRegistos ; i ++){
+
+        archivoBi2.read(reinterpret_cast<char *>(&venta) , sizeof(Venta)) ;
+
+        if(venta.cantidad > 100){
+
+            haySospechosas = true ;
+
+            archivoNuevo << "\nID Venta : " << venta.idVenta
+                         << " | ID Vendedor : " << venta.idVendedor
+                         << " | Producto : " << venta.idProducto
+                         << " | Cantidad : " << venta.cantidad
+                         << endl ;
+        }
+    }
+
+    if(!haySospechosas){
+        archivoNuevo << "\nNo hay ventas sospechosas registradas." << endl ;
+    }
+
+    archivoBi2.close() ;
+    archivoNuevo.close() ;
 
     return 0 ;
 }
